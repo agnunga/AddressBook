@@ -16,5 +16,7 @@
     <string name="yes">Yes</string>
     <string name="no">No</string>
     <string name="add_contact">Add new contact</string>
+    <string name="search_hint">Search by name or phone number</string>
+    <string name="no_contacts_found">No contacts found</string>
 
 </resources>

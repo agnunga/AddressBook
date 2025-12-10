@@ -2,29 +2,39 @@ package com.example.addressbook;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.view.KeyEvent;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.AdapterView.OnItemClickListener;
+import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity {
     public final static String EXTRA_MESSAGE = "MESSAGE";
     private ListView obj;
-    private ArrayAdapter<String> arrayAdapter;
-    DBHelper mydb;
+    private ContactAdapter arrayAdapter;
+    private DBHelper mydb;
+    private EditText searchEditText;
+    private String currentSortField = DBHelper.CONTACTS_COLUMN_NAME;
+    private String currentSortOrder = "ASC";
+    private ArrayList<HashMap<String, String>> contactList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,8 +48,25 @@ public class MainActivity extends AppCompatActivity {
         // Initialize database
         mydb = new DBHelper(this);
         
+        // Initialize the ListView
+        obj = findViewById(R.id.listView1);
+        
         // Set up the list view with contacts
-        refreshContactList();
+        refreshContactList(null);
+        
+        // Set up item click listener for the list
+        obj.setOnItemClickListener((parent, view, position, id) -> {
+            // Get the contact ID from the selected item
+            String contactIdStr = contactList.get(position).get("id");
+            try {
+                int contactId = Integer.parseInt(contactIdStr);
+                Intent intent = new Intent(getApplicationContext(), DisplayContact.class);
+                intent.putExtra("id", contactId);
+                startActivity(intent);
+            } catch (NumberFormatException e) {
+                Toast.makeText(this, "Error: Invalid contact ID", Toast.LENGTH_SHORT).show();
+            }
+        });
         
         // Set up FAB click listener
         FloatingActionButton fab = findViewById(R.id.fab);
@@ -88,26 +115,40 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         // Refresh the contact list when returning to this activity
-        refreshContactList();
+        refreshContactList(searchEditText != null ? searchEditText.getText().toString() : "");
     }
-    
-    private void refreshContactList() {
-        ArrayList<String> array_list = mydb.getAllContacts();
-        arrayAdapter = new ArrayAdapter<>(
-            this, 
-            android.R.layout.simple_list_item_1,
-            array_list
-        );
-        if (obj != null) {
-            obj.setAdapter(arrayAdapter);
-            obj.setOnItemClickListener((arg0, arg1, arg2, arg3) -> {
-                int id_To_Search = arg2 + 1;
-                Bundle dataBundle = new Bundle();
-                dataBundle.putInt("id", id_To_Search);
-                Intent intent = new Intent(getApplicationContext(), DisplayContact.class);
-                intent.putExtras(dataBundle);
-                startActivity(intent);
-            });
+
+    private void refreshContactList(String searchQuery) {
+        new LoadContactsTask().execute(searchQuery);
+    }
+
+    private class LoadContactsTask extends AsyncTask<String, Void, ArrayList<HashMap<String, String>>> {
+        @Override
+        protected ArrayList<HashMap<String, String>> doInBackground(String... params) {
+            String searchQuery = params.length > 0 ? params[0] : "";
+            if (searchQuery != null && !searchQuery.isEmpty()) {
+                return mydb.searchContacts(searchQuery);
+            } else {
+                return mydb.getAllContactsWithDetails(currentSortField, currentSortOrder);
+            }
+        }
+
+        @Override
+        protected void onPostExecute(ArrayList<HashMap<String, String>> result) {
+            contactList = result;
+            ArrayList<String> contactNames = new ArrayList<>();
+            for (HashMap<String, String> contact : contactList) {
+                contactNames.add(contact.get("name"));
+            }
+
+            if (arrayAdapter == null) {
+                arrayAdapter = new ContactAdapter(MainActivity.this, contactList, contactNames);
+                obj.setAdapter(arrayAdapter);
+            } else {
+                arrayAdapter.clear();
+                arrayAdapter.addAll(contactNames);
+                arrayAdapter.notifyDataSetChanged();
+            }
         }
     }
 }

@@ -3,20 +3,19 @@ package com.example.addressbook;
 import android.os.Bundle;
 import android.app.Activity;
 import android.app.AlertDialog;
-
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
-
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
-public class DisplayContact extends Activity {
+public class DisplayContact extends AppCompatActivity {
     int from_Where_I_Am_Coming = 0;
     private DBHelper mydb;
 
@@ -31,152 +30,176 @@ public class DisplayContact extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_display_contact);
+        
+        // Set up the action bar
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle("Contact Details");
+        }
+
+        // Initialize views
         name = findViewById(R.id.editTextName);
         phone = findViewById(R.id.editTextPhone);
         email = findViewById(R.id.editTextEmail);
         street = findViewById(R.id.editTextStreet);
-        place = findViewById(R.id.editTextCity);
+        place = findViewById(R.id.editTextCountry);
         mydb = new DBHelper(this);
 
+        // Get the contact ID from the intent
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
-            int Value = extras.getInt("id");
+            id_To_Update = extras.getInt("id");
 
-            if (Value > 0) {
-                // View/Edit existing contact
-                Cursor rs = mydb.getData(Value);
-                // FIX: Check if cursor is valid and has data
-                if (rs != null && rs.moveToFirst()) {
-                    id_To_Update = Value;
-                    String nam = rs.getString(rs.getColumnIndexOrThrow(DBHelper.CONTACTS_COLUMN_NAME));
-                    String phon = rs.getString(rs.getColumnIndexOrThrow(DBHelper.CONTACTS_COLUMN_PHONE));
-                    String emai = rs.getString(rs.getColumnIndexOrThrow(DBHelper.CONTACTS_COLUMN_EMAIL));
-                    String stree = rs.getString(rs.getColumnIndexOrThrow(DBHelper.CONTACTS_COLUMN_STREET));
-                    String plac = rs.getString(rs.getColumnIndexOrThrow(DBHelper.CONTACTS_COLUMN_CITY));
-
-                    if (!rs.isClosed()) {
-                        rs.close();
-                    }
-
-                    Button b = findViewById(R.id.button1);
-                    b.setVisibility(View.INVISIBLE);
-
-                    name.setText(nam);
-                    name.setFocusable(false);
-                    name.setClickable(false);
-
-                    phone.setText(phon);
-                    phone.setFocusable(false);
-                    phone.setClickable(false);
-
-                    email.setText(emai);
-                    email.setFocusable(false);
-                    email.setClickable(false);
-
-                    street.setText(stree);
-                    street.setFocusable(false);
-                    street.setClickable(false);
-
-                    place.setText(plac);
-                    place.setFocusable(false);
-                    place.setClickable(false);
-                }
+            if (id_To_Update > 0) {
+                // Load existing contact
+                loadContact(id_To_Update);
+            } else {
+                // New contact - enable all fields by default
+                enableEditMode(true);
+                Button saveButton = findViewById(R.id.button1);
+                saveButton.setVisibility(View.VISIBLE);
             }
         }
     }
+
+    private void loadContact(int id) {
+        Cursor rs = mydb.getData(id);
+        if (rs != null && rs.moveToFirst()) {
+            // Set contact data to views
+            name.setText(rs.getString(rs.getColumnIndexOrThrow(DBHelper.CONTACTS_COLUMN_NAME)));
+            phone.setText(rs.getString(rs.getColumnIndexOrThrow(DBHelper.CONTACTS_COLUMN_PHONE)));
+            email.setText(rs.getString(rs.getColumnIndexOrThrow(DBHelper.CONTACTS_COLUMN_EMAIL)));
+            street.setText(rs.getString(rs.getColumnIndexOrThrow(DBHelper.CONTACTS_COLUMN_STREET)));
+            place.setText(rs.getString(rs.getColumnIndexOrThrow(DBHelper.CONTACTS_COLUMN_CITY)));
+
+            if (!rs.isClosed()) {
+                rs.close();
+            }
+        }
+    }
+
+    private void enableEditMode(boolean enable) {
+        name.setEnabled(enable);
+        name.setFocusableInTouchMode(enable);
+        name.setClickable(enable);
+
+        phone.setEnabled(enable);
+        phone.setFocusableInTouchMode(enable);
+        phone.setClickable(enable);
+
+        email.setEnabled(enable);
+        email.setFocusableInTouchMode(enable);
+        email.setClickable(enable);
+
+        street.setEnabled(enable);
+        street.setFocusableInTouchMode(enable);
+        street.setClickable(enable);
+
+        place.setEnabled(enable);
+        place.setFocusableInTouchMode(enable);
+        place.setClickable(enable);
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        Bundle extras = getIntent().getExtras();
-
-        if (extras != null) {
-            int Value = extras.getInt("id");
-            if (Value > 0) {
-                getMenuInflater().inflate(R.menu.display_contact, menu);
-            } else {
-                getMenuInflater().inflate(R.menu.menu_main, menu);
-            }
-        }
+        // Inflate the menu; this adds items to the action bar if it is present
+        getMenuInflater().inflate(R.menu.display_contact, menu);
         return true;
     }
+    
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        // Show/hide menu items based on whether we're editing an existing contact
+        MenuItem editItem = menu.findItem(R.id.Edit_Contact);
+        MenuItem deleteItem = menu.findItem(R.id.Delete_Contact);
+        
+        if (id_To_Update > 0) {
+            // Existing contact - show edit and delete
+            if (editItem != null) editItem.setVisible(true);
+            if (deleteItem != null) deleteItem.setVisible(true);
+        } else {
+            // New contact - hide both
+            if (editItem != null) editItem.setVisible(false);
+            if (deleteItem != null) deleteItem.setVisible(false);
+        }
+        
+        return super.onPrepareOptionsMenu(menu);
+    }
 
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        super.onOptionsItemSelected(item);
-
         int itemId = item.getItemId();
-
-        if (itemId == R.id.Edit_Contact) {
-            Button b = findViewById(R.id.button1);
-            b.setVisibility(View.VISIBLE);
-            name.setEnabled(true);
-            name.setFocusableInTouchMode(true);
-            name.setClickable(true);
-
-            phone.setEnabled(true);
-            phone.setFocusableInTouchMode(true);
-            phone.setClickable(true);
-
-            email.setEnabled(true);
-            email.setFocusableInTouchMode(true);
-            email.setClickable(true);
-
-            street.setEnabled(true);
-            street.setFocusableInTouchMode(true);
-            street.setClickable(true);
-
-            place.setEnabled(true);
-            place.setFocusableInTouchMode(true);
-            place.setClickable(true);
-
+        
+        // Handle back button in action bar
+        if (itemId == android.R.id.home) {
+            finish();
+            return true;
+        } else if (itemId == R.id.Edit_Contact) {
+            // Show the save button and enable editing
+            Button saveButton = findViewById(R.id.button1);
+            saveButton.setVisibility(View.VISIBLE);
+            enableEditMode(true);
             return true;
         } else if (itemId == R.id.Delete_Contact) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setMessage(R.string.deleteContact)
-                    .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            mydb.deleteContact(id_To_Update);
-                            Toast.makeText(getApplicationContext(), "Deleted Successfully", Toast.LENGTH_SHORT).show();
-                            Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-                            startActivity(intent);
-                        }
-                    })
-                    .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            // User cancelled the dialog
-                        }
-                    });
-            AlertDialog d = builder.create();
-            d.setTitle("Are you sure");
-            d.show();
-
+            showDeleteConfirmationDialog();
             return true;
-        } else {
-            return super.onOptionsItemSelected(item);
         }
+        return super.onOptionsItemSelected(item);
+    }
+    
+    private void showDeleteConfirmationDialog() {
+        new AlertDialog.Builder(this)
+            .setMessage("Are you sure you want to delete this contact?")
+            .setPositiveButton("Yes", (dialog, id) -> {
+                mydb.deleteContact(id_To_Update);
+                Toast.makeText(getApplicationContext(), "Contact deleted", Toast.LENGTH_SHORT).show();
+                finish(); // Close this activity and return to the list
+            })
+            .setNegativeButton("No", (dialog, id) -> dialog.dismiss())
+            .setTitle("Confirm Delete")
+            .show();
     }
 
     public void run(View view) {
-        Bundle extras = getIntent().getExtras();
-        if (extras != null) {
-            int Value = extras.getInt("id");
-            if (Value > 0) {
-                if (mydb.updateContact(id_To_Update, name.getText().toString(), phone.getText().toString(), email.getText().toString(), street.getText().toString(), place.getText().toString())) {
-                    Toast.makeText(getApplicationContext(), "Updated", Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-                    startActivity(intent);
-                } else {
-                    Toast.makeText(getApplicationContext(), "not Updated", Toast.LENGTH_SHORT).show();
-                }
+        // Get values from the form
+        String nameStr = name.getText().toString().trim();
+        String phoneStr = phone.getText().toString().trim();
+        String emailStr = email.getText().toString().trim();
+        String streetStr = street.getText().toString().trim();
+        String placeStr = place.getText().toString().trim();
+
+        // Basic validation
+        if (nameStr.isEmpty()) {
+            Toast.makeText(this, "Name cannot be empty", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        boolean success;
+        if (id_To_Update > 0) {
+            // Update existing contact
+            success = mydb.updateContact(id_To_Update, nameStr, phoneStr, emailStr, streetStr, placeStr);
+            if (success) {
+                Toast.makeText(this, "Contact updated", Toast.LENGTH_SHORT).show();
             } else {
-                if (mydb.insertContact(name.getText().toString(), phone.getText().toString(), email.getText().toString(), street.getText().toString(), place.getText().toString())) {
-                    Toast.makeText(getApplicationContext(), "done", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(getApplicationContext(), "not done", Toast.LENGTH_SHORT).show();
-                }
-                Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-                startActivity(intent);
+                Toast.makeText(this, "Update failed", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        } else {
+            // Insert new contact
+            success = mydb.insertContact(nameStr, phoneStr, emailStr, streetStr, placeStr);
+            if (success) {
+                Toast.makeText(this, "Contact saved", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Save failed", Toast.LENGTH_SHORT).show();
+                return;
             }
         }
+
+        // Return to the main activity
+        finish();
     }
 }
+

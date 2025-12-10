@@ -21,7 +21,9 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".DisplayContact" />
+            android:name=".DisplayContact"
+            android:exported="false"
+            android:theme="@style/Theme.AddressBook.NoActionBar" />
 
     </application>
 </manifest>

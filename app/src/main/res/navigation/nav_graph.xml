@@ -7,7 +7,7 @@
 
     <activity
         android:id="@+id/MainActivity"
-        android:name="com.example.addressbook.DisplayContact"
+        android:name="com.example.addressbook.MainActivity"
         android:label="@string/app_name"
         tools:layout="@layout/activity_main">
 
