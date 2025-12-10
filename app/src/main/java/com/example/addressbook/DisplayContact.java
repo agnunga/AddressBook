@@ -183,18 +183,24 @@ public class DisplayContact extends AppCompatActivity {
             success = mydb.updateContact(id_To_Update, nameStr, phoneStr, emailStr, streetStr, placeStr);
             if (success) {
                 Toast.makeText(this, "Contact updated", Toast.LENGTH_SHORT).show();
+                // Set result to indicate success and finish the activity
+                Intent returnIntent = new Intent();
+                returnIntent.putExtra("contact_updated", true);
+                setResult(RESULT_OK, returnIntent);
+                finish();
             } else {
                 Toast.makeText(this, "Update failed", Toast.LENGTH_SHORT).show();
-                return;
             }
         } else {
             // Insert new contact
             success = mydb.insertContact(nameStr, phoneStr, emailStr, streetStr, placeStr);
             if (success) {
                 Toast.makeText(this, "Contact saved", Toast.LENGTH_SHORT).show();
+                // Set result to indicate success and finish the activity
+                setResult(RESULT_OK);
+                finish();
             } else {
                 Toast.makeText(this, "Save failed", Toast.LENGTH_SHORT).show();
-                return;
             }
         }
 
